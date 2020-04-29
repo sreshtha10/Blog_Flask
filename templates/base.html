@@ -1,12 +1,16 @@
 {% extends 'bootstrap/base.html' %}
-{% block head %}
-{{ ckeditor.load() }}
-{{ super() }}
+{%block head %}
+<head> {{ ckeditor.load() }} </head>
+{{super()}}
 {% endblock %}
 {% block title %}
 Blog
 {% endblock %}
+{% block navbar %}
+  {% include "navbar.html" %}
+{% endblock %}
 {% block content %}
+
 {% with messages = get_flashed_messages(with_categories=true)%}
 {% if messages %}
 <ul>
