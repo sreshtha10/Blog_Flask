@@ -21,14 +21,27 @@ blog.config['SECRET_KEY'] = os.urandom(24)
 
 
 # Home Page
-@blog.route('/')
-def home():
+@blog.route('/',methods = ['GET','POST'])
+def index():
     return render_template('index.html')
 
 
 # Registration Page
 @blog.route('/register/', methods=['GET', 'POST'])
 def register():
+    if request.method is 'POST':
+        userDetails = request.form
+        if userDetails['password'] != userDetails['confirm_password']:
+            flash('Password do not match !', 'danger')
+            return render_template('register.html')
+        cur = mysql.connection.cursor()
+        cur.execute('INSERT INTO user(first_name, last_name, username, email, password) VALUES(%s,%s,%s,%s,%s)',
+                    (userDetails['first_name'], userDetails['last_name'], userDetails['username'], userDetails['email'],
+                     generate_password_hash(userDetails['password'])))
+        mysql.connection.commit()
+        cur.close()
+        flash('Registration Successful ! Please Login.', 'success')
+        return redirect('/login')
     return render_template('register.html')
 
 
