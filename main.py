@@ -16,12 +16,11 @@ blog.config['MYSQL_PASSWORD'] = db['mysql_password']
 blog.config['MYSQL_DB'] = db['mysql_db']
 blog.config['MYSQL_CURSORCLASS'] = 'DictCursor'
 mysql = MySQL(blog)
-
 blog.config['SECRET_KEY'] = os.urandom(24)
 
 
 # Home Page
-@blog.route('/',methods = ['GET','POST'])
+@blog.route('/', methods=['GET', 'POST'])
 def index():
     return render_template('index.html')
 
@@ -29,7 +28,7 @@ def index():
 # Registration Page
 @blog.route('/register/', methods=['GET', 'POST'])
 def register():
-    if request.method is 'POST':
+    if request.method == 'POST':
         userDetails = request.form
         if userDetails['password'] != userDetails['confirm_password']:
             flash('Password do not match !', 'danger')
@@ -45,47 +44,32 @@ def register():
     return render_template('register.html')
 
 
-# About Page
-@blog.route('/about/')
-def about():
-    return render_template('about.html')
-
-
-# Blog
-@blog.route('/blogs/<int:id>/')
-def blogs(id):
-    return render_template('blog.html', blog_id=id)
-
-
 # Login Page
 @blog.route('/login/', methods=['GET', 'POST'])
 def login():
+    if request.method =='POST':
+        userDetails = request.form
+        username = userDetails['username']
+        cur = mysql.connection.cursor()
+        resultValue = cur.execute('SELECT * FROM user WHERE username = %s', ([username]))
+        if resultValue > 0:
+            user = cur.fetchone()
+            if check_password_hash(user['password'], userDetails['password']):
+                session['login'] = True
+                session['first_name'] = user['first_name']
+                session['last_name'] = user['last_name']
+                flash('Welcome ' + session['first_name'] + ' ! You have successfully logged in.', 'success')
+            else:
+                cur.close()
+                flash('Password do not match', 'danger')
+                return render_template('login.html')
+        else:
+            cur.close()
+            flash('User not found', 'danger')
+            return render_template('login.html')
+        cur.close()
+        return redirect('/')
     return render_template('login.html')
-
-
-@blog.route('/write-blog/', methods=['GET', 'POST'])
-def write_blog():
-    return render_template('write-blog.html')
-
-
-@blog.route('/my-blog/')
-def my_blog():
-    return render_template('my-blog.html')
-
-
-@blog.route('/edit/<int:id>/', methods=['GET', 'POST'])
-def edit(id):
-    return render_template('edit.html', blog_id=id)
-
-
-@blog.route('/delete-blog/<int:id>/', methods=['POST'])
-def delete(id):
-    return render_template('delete-blog.html', blog_id=id)
-
-
-@blog.route('/logout/')
-def logout():
-    return render_template('logout.html')
 
 
 if __name__ == '__main__':
