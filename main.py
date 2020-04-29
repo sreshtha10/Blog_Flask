@@ -19,6 +19,7 @@ blog.config['MYSQL_CURSORCLASS'] = 'DictCursor'
 mysql = MySQL(blog)
 blog.config['SECRET_KEY'] = os.urandom(24)
 
+# Using ckeditor
 CKEditor(blog)
 
 
@@ -99,6 +100,7 @@ def write():
     return render_template('write-blog.html')
 
 
+# Read Blog page
 @blog.route('/blogs/<int:id>/')
 def blogs(id):
     cur = mysql.connection.cursor()
@@ -107,6 +109,64 @@ def blogs(id):
         blog = cur.fetchone()
         return render_template('blogs.html', blog=blog)
     return 'Blog not found'
+
+
+@blog.route('/my-blogs/')
+def my_blogs():
+    author = author = session['first_name'] + ' ' + session['last_name']
+    cur = mysql.connection.cursor()
+    resultValue = cur.execute('SELECT * FROM blog WHERE author = %s', [author])
+    if resultValue > 0:
+        my_blogs = cur.fetchall()
+        return render_template('my-blogs.html', my_blogs=my_blogs)
+    else:
+        return render_template('my-blogs.html', my_blogs=None)
+
+
+# Edit Blog Page
+@blog.route('/edit-blog/<int:id>/', methods=['GET', 'POST'])
+def edit_blog(id):
+    if request.method == 'POST':
+        cur = mysql.connection.cursor()
+        title = request.form['title']
+        body = request.form['body']
+        cur.execute("UPDATE blog SET title = %s, body = %s where blog_id = %s", (title, body, id))
+        mysql.connection.commit()
+        cur.close()
+        flash('Blog updated successfully', 'success')
+        return redirect('/blogs/{}'.format(id))
+    cur = mysql.connection.cursor()
+    result_value = cur.execute("SELECT * FROM blog WHERE blog_id = {}".format(id))
+    if result_value > 0:
+        blog = cur.fetchone()
+        blog_form = {}
+        blog_form['title'] = blog['title']
+        blog_form['body'] = blog['body']
+        return render_template('edit-blog.html', blog_form=blog_form)
+
+
+# Delete blog
+@blog.route('/delete-blog/<int:id>/')
+def delete_blog(id):
+    cur = mysql.connection.cursor()
+    cur.execute("DELETE FROM blog WHERE blog_id = {}".format(id))
+    mysql.connection.commit()
+    flash("Your blog has been deleted", 'success')
+    return redirect('/my-blogs')
+
+
+# About Page
+@blog.route('/about/')
+def about():
+    return render_template('about.html')
+
+
+# Logout Page
+@blog.route('/logout/')
+def logout():
+    session.clear()
+    flash("You have been logged out", 'info')
+    return redirect('/')
 
 
 if __name__ == '__main__':
